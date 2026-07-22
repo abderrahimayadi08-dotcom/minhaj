@@ -1,4 +1,4 @@
-const CACHE = 'minhaj-v1'
+const CACHE = 'minhaj-v2'
 const URLS = ['/', '/index.html', '/404.html']
 
 self.addEventListener('install', (e) => {
