@@ -25,47 +25,78 @@ export function addDays(date, n) {
 }
 
 const empty = {
-  version: 1,
+  version: 4,
   groups: [],
   penalties: [],
   tasks: [],
   commitments: [],
+  commitmentGroups: [],
   daily: {},
   penaltyLog: [],
+  penaltyReductions: [],
+  violationLog: [],
 }
 
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { ...empty }
+    if (!raw) return { ...empty }
+    const data = JSON.parse(raw)
+    if (!data.version || data.version < 2) {
+      data.commitmentGroups = data.commitmentGroups || []
+      data.violationLog = data.violationLog || []
+      data.version = 2
+    }
+    if (!data.version || data.version < 3) {
+      data.penaltyReductions = data.penaltyReductions || []
+      data.version = 3
+    }
+    if (!data.version || data.version < 4) {
+      data.groups = data.groups.map(g => ({ ...g, parentId: g.parentId || null }))
+      data.version = 4
+    }
+    return data
   } catch { return { ...empty } }
 }
 
 function save(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch (e) {
+    console.error('localStorage save failed:', e)
+    alert('حدث خطأ في حفظ البيانات! قد يكون مساحة التخزين ممتلئة. يرجى تصدير البيانات من الإعدادات.')
+  }
 }
 
 function reducer(state, action) {
   switch (action.type) {
     // GROUPS
     case 'ADD_GROUP': {
-      const g = { id: uid(), name: action.name, color: action.color, order: state.groups.length }
+      const g = { id: uid(), name: action.name, color: action.color, parentId: action.parentId || null, order: state.groups.length }
       return { ...state, groups: [...state.groups, g] }
     }
     case 'EDIT_GROUP': {
-      const groups = state.groups.map(g => g.id === action.id ? { ...g, name: action.name, color: action.color } : g)
+      const groups = state.groups.map(g => g.id === action.id ? { ...g, name: action.name, color: action.color, parentId: action.parentId !== undefined ? action.parentId : g.parentId } : g)
       return { ...state, groups }
     }
     case 'DEL_GROUP': {
-      return { ...state, groups: state.groups.filter(g => g.id !== action.id) }
+      const ids = new Set([action.id])
+      let prev
+      while (prev !== ids.size) { prev = ids.size; state.groups.forEach(g => { if (ids.has(g.parentId)) ids.add(g.id) }) }
+      return { ...state, groups: state.groups.filter(g => !ids.has(g.id)) }
     }
     case 'REORDER_GROUPS': {
-      return { ...state, groups: action.ids.map((id, i) => ({ ...state.groups.find(g => g.id === id), order: i })) }
+      const orderMap = {}
+      action.ids.forEach((id, i) => { orderMap[id] = i })
+      return { ...state, groups: state.groups.map(g => ({
+        ...g,
+        order: orderMap[g.id] !== undefined ? orderMap[g.id] : g.order
+      })) }
     }
 
     // PENALTIES
     case 'ADD_PENALTY': {
-      const p = { id: uid(), name: action.name, type: action.type, unit: action.unit, isMonetary: action.isMonetary }
+      const p = { id: uid(), name: action.name, type: action.penaltyType, unit: action.unit, isMonetary: action.isMonetary }
       return { ...state, penalties: [...state.penalties, p] }
     }
     case 'DEL_PENALTY': {
@@ -87,7 +118,22 @@ function reducer(state, action) {
       return { ...state, tasks: state.tasks.filter(t => !ids.has(t.id)) }
     }
     case 'REORDER_TASKS': {
-      return { ...state, tasks: action.ids.map((id, i) => ({ ...state.tasks.find(t => t.id === id), order: i })) }
+      const orderMap = {}
+      action.ids.forEach((id, i) => { orderMap[id] = i })
+      return { ...state, tasks: state.tasks.map(t => ({
+        ...t,
+        order: orderMap[t.id] !== undefined ? orderMap[t.id] : t.order
+      })) }
+    }
+    case 'REORDER_SUBTASKS': {
+      const tasks = state.tasks.map(t => {
+        if (t.parentId === action.parentId) {
+          const idx = action.ids.indexOf(t.id)
+          return { ...t, order: idx >= 0 ? idx : t.order }
+        }
+        return t
+      })
+      return { ...state, tasks }
     }
 
     // DAILY STATUS
@@ -113,9 +159,22 @@ function reducer(state, action) {
       return { ...state, daily: { ...state.daily, [day]: dayData } }
     }
 
+    // COMMITMENT GROUPS
+    case 'ADD_COMMITMENT_GROUP': {
+      const colors = ['#4A7C59', '#C4843D', '#B8453A', '#D4A847', '#4A90D9', '#8E5EA2', '#2C8C7C', '#D9654B']
+      const color = action.color || colors[state.commitmentGroups.length % colors.length]
+      const g = { id: uid(), name: action.name, color, order: state.commitmentGroups.length }
+      return { ...state, commitmentGroups: [...state.commitmentGroups, g] }
+    }
+    case 'DEL_COMMITMENT_GROUP': {
+      const hasCommitments = state.commitments.some(c => c.groupId === action.id)
+      if (hasCommitments) return state
+      return { ...state, commitmentGroups: state.commitmentGroups.filter(g => g.id !== action.id) }
+    }
+
     // COMMITMENTS
     case 'ADD_COMMITMENT': {
-      const c = { id: uid(), text: action.text, penaltyId: action.penaltyId, penaltyCount: action.penaltyCount, note: action.note || '', isMonetary: action.isMonetary, violations: 0, createdAt: todayStr() }
+      const c = { id: uid(), text: action.text, penaltyId: action.penaltyId, penaltyCount: action.penaltyCount, note: action.note || '', isMonetary: action.isMonetary, violations: 0, createdAt: todayStr(), groupId: action.groupId || null, order: state.commitments.filter(cv => cv.groupId === (action.groupId || null)).length }
       return { ...state, commitments: [...state.commitments, c] }
     }
     case 'EDIT_COMMITMENT': {
@@ -125,16 +184,41 @@ function reducer(state, action) {
     case 'DEL_COMMITMENT': {
       return { ...state, commitments: state.commitments.filter(c => c.id !== action.id) }
     }
+    case 'REORDER_COMMITMENTS': {
+      const orderMap = {}
+      action.ids.forEach((id, i) => { orderMap[id] = i })
+      return { ...state, commitments: state.commitments.map(c => ({
+        ...c,
+        order: orderMap[c.id] !== undefined ? orderMap[c.id] : c.order
+      })) }
+    }
     case 'VIOLATE_COMMITMENT': {
       return { ...state, commitments: state.commitments.map(c => c.id === action.id ? { ...c, violations: c.violations + 1 } : c) }
+    }
+
+    // VIOLATION LOG
+    case 'ADD_VIOLATION_LOG': {
+      return { ...state, violationLog: [...state.violationLog, { date: action.date || todayStr(), ...action.entry, id: uid() }] }
+    }
+    case 'CLEAR_VIOLATION_LOG': {
+      return { ...state, violationLog: [] }
     }
 
     // PENALTY LOG
     case 'ADD_PENALTY_LOG': {
       return { ...state, penaltyLog: [...state.penaltyLog, { date: todayStr(), ...action.entry, id: uid() }] }
     }
-    case 'CLEAR_PENALTY_LOG': {
-      return { ...state, penaltyLog: [] }
+    case 'REMOVE_PENALTY_LOG_BY_SOURCE': {
+      return { ...state, penaltyLog: state.penaltyLog.filter(e => !(e.source === 'task' && e.sourceId === action.sourceId)) }
+    }
+    case 'REDUCE_PENALTY': {
+      return { ...state, penaltyReductions: [...state.penaltyReductions, { id: uid(), date: todayStr(), text: action.text, isMonetary: action.isMonetary, count: action.count }] }
+    }
+    case 'INCREASE_PENALTY': {
+      return { ...state, penaltyLog: [...state.penaltyLog, { date: todayStr(), source: 'manual_increase', penaltyText: action.text, count: action.count, unit: action.unit, isMonetary: action.isMonetary, id: uid() }] }
+    }
+    case 'DELETE_PENALTY_LOG_BY_TEXT': {
+      return { ...state, penaltyLog: state.penaltyLog.filter(e => !(e.penaltyText === action.text && e.isMonetary === action.isMonetary)) }
     }
 
     default: return state
@@ -155,12 +239,26 @@ export function StoreProvider({ children }) {
     const dayData = state.daily[date] || {}
     const activeTasks = getActiveTasks(state, date)
     activeTasks.forEach(t => {
-      if (!dayData[t.id] && !t.deadline) {
-        dispatch({ type: 'SET_STATUS', date, taskId: t.id, status: 'failed' })
-      }
-      if (t.deadline && date > t.deadline && !dayData[t.id]) {
-        dispatch({ type: 'SET_STATUS', date, taskId: t.id, status: 'failed' })
-      }
+      let doFail = false
+      if (!dayData[t.id] && !t.deadline) { doFail = true }
+      if (t.deadline && date > t.deadline && !dayData[t.id]) { doFail = true }
+      if (!doFail) return
+      dispatch({ type: 'SET_STATUS', date, taskId: t.id, status: 'failed' })
+      const tPenaltyIds = t.penaltyIds || (t.penaltyId ? [t.penaltyId] : [])
+      tPenaltyIds.forEach(pid => {
+        const penalty = state.penalties.find(p => p.id === pid)
+        const cnt = (t.penaltyCounts && t.penaltyCounts[pid]) || t.penaltyCount || 1
+        dispatch({
+          type: 'ADD_PENALTY_LOG',
+          entry: {
+            source: 'task', sourceId: t.id,
+            penaltyText: penalty ? penalty.name : 'عقوبة',
+            count: Number(cnt),
+            unit: penalty ? penalty.unit : '',
+            isMonetary: penalty ? penalty.isMonetary : false,
+          },
+        })
+      })
     })
   }, [state])
 
@@ -173,19 +271,37 @@ export function useStore() {
   return ctx
 }
 
+export function isTaskActiveOnDate(task, date, state) {
+  if (date < task.startDate) return false
+  if (task.deadline && date > task.deadline) return false
+  if (task.type === 'temporary') return task.startDate === date
+  if (task.type === 'until_complete') {
+    if (!state) return true
+    const completed = Object.keys(state.daily).some(d => {
+      if (d >= date) return false
+      const dayData = state.daily[d]
+      const status = dayData?.[task.id]
+      return status === 'completed' || (status && !isNaN(Number(status)) && Number(status) > 0)
+    })
+    return !completed
+  }
+  if (task.type === 'daily' || task.type === 'recurring') return true
+  if (task.type === 'weekly') {
+    const day = new Date(date).getDay()
+    return (task.weekDays || []).includes(day)
+  }
+  if (task.type === 'monthly') {
+    const day = new Date(date).getDate()
+    return (task.monthDays || []).includes(day)
+  }
+  return false
+}
+
 // Pure helpers
 export function getActiveTasks(state, date) {
   return state.tasks
     .filter(t => !t.parentId)
-    .filter(t => {
-      if (t.type === 'temporary') return t.startDate === date
-      if (t.type === 'recurring') return date >= t.startDate
-      return false
-    })
-    .filter(t => {
-      if (t.deadline) return date <= t.deadline
-      return true
-    })
+    .filter(t => isTaskActiveOnDate(t, date, state))
     .sort((a, b) => a.order - b.order)
 }
 
@@ -205,11 +321,35 @@ export function getSubtaskStatus(state, date, parentId, taskId) {
   return day[`${parentId}_${taskId}`] || null
 }
 
-export function getCompletionPct(state, date, taskId) {
-  const subs = getSubtasks(state, taskId)
-  if (!subs.length) return getTaskStatus(state, date, taskId) === 'completed' ? 100 : 0
-  const done = subs.filter(s => getSubtaskStatus(state, date, taskId, s.id) === 'completed').length
-  return Math.round((done / subs.length) * 100)
+export function getFailedTasks(state, date) {
+  const day = state.daily[date]
+  if (!day) return []
+  return state.tasks.filter(t => {
+    if (t.parentId) return false
+    const status = day[t.id]
+    if (status === 'failed') return true
+    if (status === '0') return true
+    return false
+  })
+}
+
+export function getCompletedTasks(state, date) {
+  const day = state.daily[date]
+  if (!day) return []
+  return state.tasks.filter(t => {
+    if (t.parentId) return false
+    const subs = getSubtasks(state, t.id)
+    if (subs.length) {
+      return subs.every(s => {
+        const st = getSubtaskStatus(state, date, t.id, s.id)
+        return st === 'completed' || (st && !isNaN(Number(st)) && Number(st) > 0)
+      })
+    }
+    const status = day[t.id]
+    if (status === 'completed') return true
+    if (status && !isNaN(Number(status)) && Number(status) > 0) return true
+    return false
+  })
 }
 
 export function daysUntil(deadline) {
@@ -224,36 +364,7 @@ export function daysUntil(deadline) {
   return days > 0 ? `${weeks} أسبوع و${days} أيام` : `${weeks} أسابيع`
 }
 
-export function getFailedTasks(state, date) {
-  const day = state.daily[date]
-  if (!day) return []
-  return state.tasks.filter(t => {
-    if (t.parentId) return false
-    const status = day[t.id]
-    return status === 'failed'
-  })
-}
-
-export function getCompletedTasks(state, date) {
-  const day = state.daily[date]
-  if (!day) return []
-  return state.tasks.filter(t => {
-    if (t.parentId) return false
-    // For tasks with subtasks, check if all are completed
-    const subs = getSubtasks(state, t.id)
-    if (subs.length) {
-      return subs.every(s => getSubtaskStatus(state, date, t.id, s.id) === 'completed')
-    }
-    return day[t.id] === 'completed'
-  })
-}
-
 export function getActiveDate() {
-  const stored = localStorage.getItem('minhaj-active-date')
-  if (stored) {
-    const d = new Date(stored)
-    if (!isNaN(d.getTime())) return fmtDate(d)
-  }
   return todayStr()
 }
 

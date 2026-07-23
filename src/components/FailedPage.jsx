@@ -18,7 +18,7 @@ export default function FailedPage() {
       {tasks.length === 0 ? (
         <div className="empty-state">
           <XCircle size={48} />
-          <p>لا توجد مهام فاشلة في هذا اليوم</p>
+          <p>لا توجد مهام فاشلة لهذا اليوم — أحسنت! تابع أداءك</p>
         </div>
       ) : tasks.map(t => (
         <TaskCard key={t.id} task={t} date={date} />

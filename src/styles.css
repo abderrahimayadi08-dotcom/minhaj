@@ -1,24 +1,23 @@
 :root {
-  --bg-page: #F8F8F6;
+  --bg-page: #F5F6F7;
   --bg-card: #FFFFFF;
-  --text-primary: #1B2838;
-  --text-secondary: #5A6570;
-  --text-muted: #9CA3AF;
-  --primary: #1B2838;
-  --primary-light: #E8EDF2;
-  --accent: #C4843D;
-  --accent-light: #F5EDE0;
+  --bg-surface: #EBEDEF;
+  --text-primary: #1A2332;
+  --text-secondary: #55606B;
+  --text-muted: #909BA6;
+  --primary: #1A2332;
+  --primary-light: #E6E9ED;
+  --accent: #BF7D3A;
+  --accent-light: #F2EAE0;
   --success: #4A7C59;
   --success-light: #E8F3EC;
   --danger: #B8453A;
   --danger-light: #F8EAE8;
-  --warning: #D4A847;
-  --warning-light: #F8F3E0;
-  --border: #E5E7EB;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-  --radius: 10px;
-  --radius-sm: 6px;
+  --warning: #C9A03E;
+  --warning-light: #F6F2E0;
+  --border: #E2E5E8;
+  --radius: 8px;
+  --radius-sm: 4px;
   --nav-height: 56px;
   --header-height: 50px;
   --text-xs: .688rem;
@@ -53,11 +52,11 @@ input, textarea, select {
   font-size: var(--text-base);
   outline: none;
   padding: 10px 12px;
-  transition: border-color .2s;
+  transition: border-color .15s;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(196,132,61,0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(26,35,50,0.12);
 }
 button {
   cursor: pointer;
@@ -65,9 +64,9 @@ button {
   font-size: var(--text-base);
   background: none;
   border: none;
-  transition: transform .15s, box-shadow .15s, background .15s;
+  transition: background .15s, opacity .15s;
 }
-button:active { transform: scale(.97) }
+button:active { opacity: .8 }
 
 .page { flex: 1; padding: 12px 14px; padding-bottom: calc(var(--nav-height) + 16px); overflow-y: auto }
 .page-title {
@@ -114,7 +113,6 @@ button:active { transform: scale(.97) }
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  direction: ltr;
 }
 .day-bar::-webkit-scrollbar { display: none }
 .day-btn {
@@ -152,6 +150,7 @@ button:active { transform: scale(.97) }
 .date-input {
   width: 100px;
   text-align: center;
+  text-align-last: center;
   font-size: var(--text-xs);
   padding: 6px;
 }
@@ -163,23 +162,21 @@ button:active { transform: scale(.97) }
   border: 1px solid var(--border);
   padding: 12px;
   margin-bottom: 8px;
-  box-shadow: var(--shadow);
-  transition: box-shadow .2s;
 }
-.task-card:active { box-shadow: var(--shadow-md) }
 .task-card-header {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
 }
 .task-color-bar {
-  width: 4px;
-  border-radius: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   flex-shrink: 0;
-  align-self: stretch;
+  margin-top: 5px;
 }
 .task-content { flex: 1; min-width: 0 }
-.task-text { font-size: var(--text-body); font-weight: 600; line-height: 1.4; margin-bottom: 4px }
+.task-text { font-size: var(--text-body); font-weight: 700; line-height: 1.4; margin-bottom: 4px }
 .task-meta {
   display: flex;
   flex-wrap: wrap;
@@ -189,7 +186,6 @@ button:active { transform: scale(.97) }
 }
 .task-meta .priority { color: var(--accent); font-weight: 700 }
 .task-meta .deadline { color: var(--danger) }
-.task-meta .completion { color: var(--success) }
 .task-actions {
   display: flex;
   gap: 6px;
@@ -208,6 +204,7 @@ button:active { transform: scale(.97) }
 }
 .task-btn.success { background: var(--success-light); color: var(--success) }
 .task-btn.danger { background: var(--danger-light); color: var(--danger) }
+.task-btn.warning { background: var(--warning-light); color: var(--warning) }
 .task-btn.active-success { background: var(--success); color: #fff }
 .task-btn.active-danger { background: var(--danger); color: #fff }
 .task-btn svg { width: 16px; height: 16px }
@@ -216,28 +213,46 @@ button:active { transform: scale(.97) }
 .subtask-list { padding-right: 16px; margin-top: 8px; border-right: 2px solid var(--border) }
 .subtask-item {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
-  cursor: pointer;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
   transition: background .15s;
 }
 .subtask-item:hover { background: var(--primary-light) }
-.subtask-checkbox {
-  width: 18px; height: 18px;
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all .2s;
-}
-.subtask-checkbox.done { background: var(--success); border-color: var(--success); color: #fff }
-.subtask-checkbox svg { width: 12px; height: 12px }
 .subtask-text { font-size: var(--text-sm); flex: 1 }
 .subtask-text.done { text-decoration: line-through; color: var(--text-muted) }
+.subtask-top-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.subtask-actions-row {
+  display: flex;
+  gap: 6px;
+}
+.subtask-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+.subtask-drag-handle:active { cursor: grabbing }
+.subtask-pct-btn {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.subtask-pct-btn:disabled { opacity: 0.4; cursor: default }
+.subtask-pct-btn.success { background: var(--success-light); color: var(--success) }
+.subtask-pct-btn.danger { background: var(--danger-light); color: var(--danger) }
+.subtask-pct-btn.warning { background: var(--warning-light); color: var(--warning) }
 
 /* Add Task FAB */
 .fab {
@@ -260,7 +275,7 @@ button:active { transform: scale(.97) }
 /* Modal */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.35);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -274,12 +289,12 @@ button:active { transform: scale(.97) }
   max-width: 400px;
   max-height: 90dvh;
   overflow-y: auto;
-  padding: 20px;
+  padding: 24px;
 }
 .modal-title {
   font-family: 'Amiri', serif;
   font-size: var(--text-xl);
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   color: var(--primary);
 }
 .form-group { margin-bottom: 12px }
@@ -299,13 +314,14 @@ button:active { transform: scale(.97) }
 }
 .btn {
   flex: 1;
-  padding: 10px;
+  padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-weight: 700;
   font-size: var(--text-sm);
   text-align: center;
 }
 .btn-primary { background: var(--primary); color: #fff }
+.btn-primary:hover { background: #2A3648 }
 .btn-secondary { background: var(--primary-light); color: var(--primary) }
 .btn-danger { background: var(--danger-light); color: var(--danger) }
 .btn-accent { background: var(--accent); color: #fff }
@@ -353,7 +369,7 @@ button:active { transform: scale(.97) }
 }
 .commitment-text { font-size: var(--text-body); font-weight: 600; margin-bottom: 4px }
 .commitment-penalty { font-size: var(--text-xs); color: var(--danger) }
-.commitment-note { font-size: var(--text-xs); color: var(--text-secondary) }
+.commitment-note { font-size: var(--text-xs); color: var(--text-secondary); margin-top: 2px }
 .commitment-violations { font-size: var(--text-xs); color: var(--text-muted); margin-top: 4px }
 
 /* Penalty card */
@@ -361,11 +377,12 @@ button:active { transform: scale(.97) }
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  padding: 12px;
+  padding: 12px 16px;
   margin-bottom: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 .penalty-text { font-size: var(--text-sm) }
 .penalty-count { font-size: var(--text-lg); font-weight: 700; color: var(--danger) }
@@ -409,8 +426,12 @@ button:active { transform: scale(.97) }
 /* Empty state */
 .empty-state {
   text-align: center;
-  padding: 40px 20px;
+  padding: 48px 20px;
   color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
-.empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: .5 }
-.empty-state p { font-size: var(--text-sm) }
+.empty-state svg { width: 40px; height: 40px; opacity: .35 }
+.empty-state p { font-size: var(--text-sm); line-height: 1.6 }

@@ -35,7 +35,7 @@ export default function SettingsPage() {
               <button onClick={() => { setEditGroup(g); setShowGroupForm(true) }} style={{ color: 'var(--text-secondary)', padding: 4 }}>
                 <Edit3 size={14} />
               </button>
-              <button onClick={() => dispatch({ type: 'DEL_GROUP', id: g.id })} style={{ color: 'var(--danger)', padding: 4 }}>
+              <button onClick={() => { if (window.confirm(`حذف المجموعة "${g.name}"؟`)) dispatch({ type: 'DEL_GROUP', id: g.id }) }} style={{ color: 'var(--danger)', padding: 4 }}>
                 <X size={14} />
               </button>
             </div>
@@ -77,6 +77,33 @@ export default function SettingsPage() {
           }}>
             📥 تصدير البيانات
           </button>
+          <button className="btn btn-primary" style={{ width: '100%', marginBottom: 8 }} onClick={() => {
+            const input = document.createElement('input')
+            input.type = 'file'
+            input.accept = '.json'
+            input.onchange = e => {
+              const file = e.target.files[0]
+              if (!file) return
+              const reader = new FileReader()
+              reader.onload = ev => {
+                try {
+                  const data = JSON.parse(ev.target.result)
+                  if (data.version && data.tasks !== undefined) {
+                    if (confirm('هل أنت متأكد من استيراد هذه البيانات؟ سيتم استبدال جميع البيانات الحالية.')) {
+                      localStorage.setItem('minhaj-data', JSON.stringify(data))
+                      window.location.reload()
+                    }
+                  } else {
+                    alert('الملف غير صالح. تأكد من أن الملف مصدّر من التطبيق.')
+                  }
+                } catch { alert('الملف غير صالح.') }
+              }
+              reader.readAsText(file)
+            }
+            input.click()
+          }}>
+            📥 استيراد البيانات
+          </button>
           <button className="btn btn-danger" style={{ width: '100%' }} onClick={() => {
             if (confirm('هل أنت متأكد من حذف جميع البيانات؟')) {
               localStorage.removeItem('minhaj-data')
@@ -97,14 +124,25 @@ export default function SettingsPage() {
 function GroupForm({ onClose, state, dispatch, edit }) {
   const [name, setName] = useState(edit?.name || '')
   const [color, setColor] = useState(edit?.color || '#4A7C59')
+  const [parentId, setParentId] = useState(edit?.parentId || '')
+
+  const excludeIds = new Set()
+  if (edit) {
+    excludeIds.add(edit.id)
+    function collectDescendants(id) {
+      state.groups.filter(g => g.parentId === id).forEach(g => { excludeIds.add(g.id); collectDescendants(g.id) })
+    }
+    collectDescendants(edit.id)
+  }
+  const availableParents = state.groups.filter(g => !excludeIds.has(g.id))
 
   function handleSubmit(e) {
     e.preventDefault()
     if (!name.trim()) return
     if (edit) {
-      dispatch({ type: 'EDIT_GROUP', id: edit.id, name: name.trim(), color })
+      dispatch({ type: 'EDIT_GROUP', id: edit.id, name: name.trim(), color, parentId: parentId || null })
     } else {
-      dispatch({ type: 'ADD_GROUP', name: name.trim(), color })
+      dispatch({ type: 'ADD_GROUP', name: name.trim(), color, parentId: parentId || null })
     }
     onClose()
   }
@@ -121,6 +159,13 @@ function GroupForm({ onClose, state, dispatch, edit }) {
           <div className="form-group">
             <label>اللون</label>
             <input type="color" className="color-input" value={color} onChange={e => setColor(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>المجموعة الأم</label>
+            <select value={parentId} onChange={e => setParentId(e.target.value)}>
+              <option value="">لا يوجد (مجموعة رئيسية)</option>
+              {availableParents.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
           </div>
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>إلغاء</button>
@@ -143,7 +188,7 @@ function PenaltyForm({ onClose, state, dispatch }) {
     dispatch({
       type: 'ADD_PENALTY',
       name: name.trim(),
-      type: isMonetary ? 'donation' : 'custom',
+      penaltyType: isMonetary ? 'donation' : 'custom',
       unit: unit.trim(),
       isMonetary,
     })

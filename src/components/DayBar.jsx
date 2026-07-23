@@ -17,7 +17,7 @@ export default function DayBar({ date, onChange }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <button className="day-nav-btn" onClick={() => scrollTo(-1)}><ChevronRight /></button>
+        <button className="day-nav-btn" onClick={() => scrollTo(1)}><ChevronRight /></button>
         <div className="day-bar" ref={scrollRef}>
           {days.map(d => {
             const daysFromNow = daysBetween(today, d)
@@ -36,7 +36,7 @@ export default function DayBar({ date, onChange }) {
             )
           })}
         </div>
-        <button className="day-nav-btn" onClick={() => scrollTo(1)}><ChevronLeft /></button>
+        <button className="day-nav-btn" onClick={() => scrollTo(-1)}><ChevronLeft /></button>
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
         <button className="day-nav-btn" onClick={goToday} style={{ fontSize: 'var(--text-xs)', padding: '4px 10px', borderRadius: 'var(--radius-sm)' }}>اليوم</button>

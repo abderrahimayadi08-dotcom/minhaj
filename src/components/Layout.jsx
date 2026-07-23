@@ -1,10 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { ListTodo, CheckCircle, XCircle, ScrollText, AlertTriangle, Settings } from 'lucide-react'
+import { ListTodo, ClipboardCheck, ScrollText, AlertTriangle, Settings } from 'lucide-react'
 
 const nav = [
   { to: '/', label: 'المهام', icon: ListTodo },
-  { to: '/completed', label: 'التامة', icon: CheckCircle },
-  { to: '/failed', label: 'الفاشلة', icon: XCircle },
+  { to: '/review', label: 'المراجعة', icon: ClipboardCheck },
   { to: '/commitments', label: 'الالتزامات', icon: ScrollText },
   { to: '/penalties', label: 'العقوبات', icon: AlertTriangle },
 ]

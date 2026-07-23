@@ -18,7 +18,7 @@ export default function CompletedPage() {
       {tasks.length === 0 ? (
         <div className="empty-state">
           <CheckCircle size={48} />
-          <p>لا توجد مهام تامة في هذا اليوم</p>
+          <p>لم تسجل مهاماً تامة لهذا اليوم. أكمل مهامك من الصفحة الرئيسية</p>
         </div>
       ) : tasks.map(t => (
         <TaskCard key={t.id} task={t} date={date} />
